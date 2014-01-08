@@ -14,6 +14,9 @@
 #define CMDBUF_SIZE	80	// enough for one VGA text line
 
 
+
+
+
 struct Command {
 	const char *name;
 	const char *desc;
@@ -25,6 +28,7 @@ static struct Command commands[] = {
 	{ "help", "Display this list of commands", mon_help },
 	{ "kerninfo", "Display information about the kernel", mon_kerninfo },
 	{"readebp","read the ebp",mon_readebp},
+	{"mon_backtrace","backtrace eip info",mon_backtrace},
 };
 #define NCOMMANDS (sizeof(commands)/sizeof(commands[0]))
 
@@ -71,15 +75,40 @@ int
 mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 {
 	// Your code here.
-    unsigned int ebp;                                                                                                                                                                                                                         
-    ebp = read_ebp();                                                             
-    int a=0;                                                                      
-    while(ebp>0)                                                                
+    unsigned int ebp;                                                                                                                                                        ebp = read_ebp();                                                             
+    while(ebp > 0)                                                                
     {                                                                             
-        cprintf("ebp %x eip %x args %08x %08x %08x\n",ebp,*((unsigned int*)ebp+1),
+        
+	int i;
+	char name[100];
+	struct Eipdebuginfo debug_info;
+
+	if( debuginfo_eip(*((unsigned int*)ebp+1) ,&debug_info) >= 0)
+	{
+		cprintf("%s\t",debug_info.eip_file);
+		cprintf("%d\t",debug_info.eip_line);
+		for(i=0;i<debug_info.eip_fn_namelen;i++)
+			name[i] = debug_info.eip_fn_name[i];
+		name[i] = '\0';
+		cprintf("%s+%x\t",name,debug_info.eip_fn_addr);
+		cprintf("args_num: %d\n",debug_info.eip_fn_narg);
+	}
+	else
+	{
+		cprintf("debuginfo_eip failed\n");
+	}	    
+	cprintf("ebp %x eip %x args %08x %08x %08x\n",ebp,*((unsigned int*)ebp+1),
                 *((unsigned int *)ebp+2),*((unsigned int *)ebp+3),*((unsigned int*)ebp+4));
-        ebp = *( unsigned int *)ebp;                                              
-    }                 
+        ebp = *( unsigned int *)ebp;       
+	
+   
+    }           
+
+    
+    
+
+
+
     return 0;
 }
 
